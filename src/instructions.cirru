@@ -5,15 +5,34 @@ var
 
 var $ dictionary $ object
   :type-define $ \ (env name retType argTypes)
-  :define $ \ (env name args)
+    = (. env name) $ object
+      :define $ array
+      :text name
+      :type :function
+      :typeInfo $ object
+        :ret retType
+        :args argTypes
+
+  :define $ \ (env name (args))
   :type-variable $ \ (env name type)
+    = (. env name) $ object
+      :depend $ array
+      :text name
+      :type type
+
   :@ $ \ (env name valueExpr)
+    var
+      value $ findVariable valueExpr
+    return $ object
+      :depend $ array
+      :text $ + ":@" name ": = " value.type ": " value.text
+      :type :void
+
   :% $ \ (env name valueExpr)
   :ret $ \ (env valueExpr)
   :+ $ \ (env leftExpr rightExpr)
-  :+. $ \ (env leftExpr rightExpr)
 
-var $ findSolution $ \ (env x)
+var $ findVariable $ \ (env x)
   assert.defined x ":searching for solution"
 
   if (_.isArray x) $ do
@@ -27,6 +46,33 @@ var $ findSolution $ \ (env x)
     return $ func env (... args)
 
   if (_.isString x) $ do
+    if (is x :void) $ do $ return $ object
+      :depend $ array
+      :text :void
+      :type :void
+
+    if (is x :true) $ do $ return $ object
+      :depend $ array
+      :text :true
+      :type :bool
+
+    if (is x :false) $ do $ return $ object
+      :depend $ array
+      :text :false
+      :type :bool
+
+    if (is (. x 0) ::) $ do $ return $ object
+      :depend $ array
+      :text $ JSON.stringify (x.substr 1)
+      :type :string
+
+    if
+      ? $ x.match "/[+-]?\d+(.\d*)?"
+      do $ return $ object
+        :depend $ array
+        :text x
+        :type :float
+
     var
       info $ . env x
     assert.isObject info ":info of a variable"
